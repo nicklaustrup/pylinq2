@@ -14,6 +14,7 @@ A simple video chat application that allows two users to connect and stream vide
 - Simple to use and set up
 
 ## Preview
+![image](https://github.com/user-attachments/assets/30408775-634a-497d-9ebe-fc7035a168bb)
 
 
 ## Setup
