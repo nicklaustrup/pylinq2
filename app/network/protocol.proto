@@ -1,0 +1,59 @@
+syntax = "proto3";
+
+package videochat;
+
+// Main message wrapper
+message VideoMessage {
+  oneof payload {
+    VideoFrame video_frame = 1;
+    AudioFrame audio_frame = 2;
+    ControlMessage control = 3;
+    StatusMessage status = 4;
+  }
+  uint64 timestamp = 5; // Timestamp in milliseconds
+}
+
+// Video frame data
+message VideoFrame {
+  bytes frame_data = 1; // Encoded video frame
+  uint32 width = 2;
+  uint32 height = 3;
+  string encoding = 4; // e.g., "h264", "jpeg"
+  uint32 frame_number = 5;
+}
+
+// Audio frame data
+message AudioFrame {
+  bytes audio_data = 1; // Raw or encoded audio data
+  uint32 sample_rate = 2;
+  uint32 channels = 3;
+  uint32 frame_number = 4;
+}
+
+// Control messages for signaling
+message ControlMessage {
+  enum ControlType {
+    CONNECT = 0;
+    DISCONNECT = 1;
+    PING = 2;
+    PONG = 3;
+    VIDEO_ON = 4;
+    VIDEO_OFF = 5;
+    AUDIO_ON = 6;
+    AUDIO_OFF = 7;
+  }
+  ControlType type = 1;
+  string data = 2; // Optional data for the control message
+}
+
+// Status and error messages
+message StatusMessage {
+  enum StatusType {
+    INFO = 0;
+    WARNING = 1;
+    ERROR = 2;
+  }
+  StatusType type = 1;
+  string message = 2;
+  int32 code = 3; // Optional error code
+} 
