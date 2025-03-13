@@ -9,7 +9,7 @@ class VideoCapture:
     """
     Handles video capture from the webcam and provides frames for display.
     """
-    def __init__(self, callback=None):
+    def __init__(self, callback=None, device_id=0):
         """
         Initialize the video capture.
         
@@ -21,6 +21,7 @@ class VideoCapture:
         self.video_thread = None
         self.callback = callback
         self.frame_size = (640, 480)
+        self.device_id = device_id
         
     def start(self, device_id=0):
         """
@@ -136,4 +137,31 @@ class VideoCapture:
         Returns:
             bool: True if active, False otherwise
         """
-        return self.is_running and self.cap is not None 
+        return self.is_running and self.cap is not None
+        
+    def get_devices(self):
+        """
+        Get a list of available video devices.
+        
+        Returns:
+            list: List of available video device names
+        """
+        available_devices = []
+        # Check the first 10 camera indices
+        for i in range(10):
+            cap = cv2.VideoCapture(i)
+            if cap.isOpened():
+                # Get device name if possible, otherwise use a generic name
+                try:
+                    # On some systems, we can get the device name
+                    name = f"Camera {i}"
+                    available_devices.append(name)
+                except Exception:
+                    available_devices.append(f"Camera {i}")
+                cap.release()
+        
+        # If no devices found, add a default entry
+        if not available_devices:
+            available_devices.append("Default Camera")
+            
+        return available_devices 

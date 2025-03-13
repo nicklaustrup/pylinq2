@@ -21,20 +21,24 @@ ctk.set_default_color_theme("blue")  # Themes: blue, green, dark-blue
 class MainWindow:
     def __init__(self):
         self.root = ctk.CTk()
-        self.root.title("Video Chat App")
+        self.root.title("PyLinq")
         self.root.geometry("1200x700")
         self.root.minsize(800, 600)
         
         # Configure grid layout
-        self.root.grid_columnconfigure(0, weight=1)
+        self.root.grid_columnconfigure(0, weight=1, pad=1)
         self.root.grid_columnconfigure(1, weight=3)
         self.root.grid_rowconfigure(0, weight=1)
+        self.root.grid_rowconfigure(1, weight=0)  # Status bar row
         
         # Create the sidebar frame
         self.create_sidebar()
         
         # Create the main content frame
         self.create_main_content()
+        
+        # Create status bar
+        self.create_status_bar()
         
         # Initialize components
         self.init_components()
@@ -90,8 +94,9 @@ class MainWindow:
         self.stats_update_interval = 1.0  # seconds
         self.last_stats_update = 0
         
-        # Populate audio device dropdowns
+        # Populate device dropdowns
         self.populate_audio_devices()
+        self.populate_video_devices()
         
     def populate_audio_devices(self):
         """Populate the audio device dropdowns with available devices"""
@@ -110,6 +115,16 @@ class MainWindow:
             self.output_device_menu.configure(values=output_device_names)
             self.output_device_menu.set(output_device_names[0])
         
+    def populate_video_devices(self):
+        """Populate the video device dropdown with available devices"""
+        # Get available video devices
+        video_devices = self.local_video_capture.get_devices()
+        video_device_names = [f"{i}: {name}" for i, name in enumerate(video_devices)]
+        
+        if video_device_names:
+            self.video_device_menu.configure(values=video_device_names)
+            self.video_device_menu.set(video_device_names[0])
+        
     def setup_event_handlers(self):
         """Set up event handlers for the application"""
         # Handle window close
@@ -123,14 +138,14 @@ class MainWindow:
         
     def create_sidebar(self):
         """Create the sidebar with controls and settings"""
-        sidebar_frame = ctk.CTkFrame(self.root, width=200, corner_radius=0)
+        sidebar_frame = ctk.CTkScrollableFrame(self.root, width=200, corner_radius=0, fg_color="transparent")
         sidebar_frame.grid(row=0, column=0, sticky="nsew")
         sidebar_frame.grid_rowconfigure(4, weight=1)
         
         # App title
         app_title = ctk.CTkLabel(
             sidebar_frame, 
-            text="Video Chat", 
+            text="Video & Audio Settings", 
             font=ctk.CTkFont(size=20, weight="bold")
         )
         app_title.grid(row=0, column=0, padx=20, pady=(20, 10))
@@ -207,11 +222,42 @@ class MainWindow:
             command=self.toggle_mic
         )
         self.mic_switch.grid(row=2, column=0, padx=10, pady=5, sticky="w")
+
+        # Video device selection
+        video_device_frame = ctk.CTkFrame(sidebar_frame)
+        video_device_frame.grid(
+            row=3, column=0, padx=20, pady=10, sticky="ew"
+        )
+        
+        video_device_label = ctk.CTkLabel(
+            video_device_frame, 
+            text="Video Devices", 
+            font=ctk.CTkFont(weight="bold")
+        )
+        video_device_label.grid(
+            row=0, column=0, padx=10, pady=5, sticky="w"
+        )
+        
+        # Camera device selection
+        camera_label = ctk.CTkLabel(
+            video_device_frame, 
+            text="Camera:"
+        )
+        camera_label.grid(row=1, column=0, padx=10, pady=5, sticky="w")
+        
+        self.video_device_menu = ctk.CTkOptionMenu(
+            video_device_frame, 
+            values=["Default"], 
+            command=self.change_input_video_device
+        )
+        self.video_device_menu.grid(
+            row=2, column=0, padx=10, pady=5, sticky="ew"
+        )
         
         # Audio device selection
         audio_device_frame = ctk.CTkFrame(sidebar_frame)
         audio_device_frame.grid(
-            row=3, column=0, padx=20, pady=10, sticky="ew"
+            row=4, column=0, padx=20, pady=10, sticky="ew"
         )
         
         audio_device_label = ctk.CTkLabel(
@@ -257,7 +303,7 @@ class MainWindow:
         
         # Settings
         settings_frame = ctk.CTkFrame(sidebar_frame)
-        settings_frame.grid(row=4, column=0, padx=20, pady=10, sticky="ew")
+        settings_frame.grid(row=5, column=0, padx=20, pady=10, sticky="ew")
         
         settings_label = ctk.CTkLabel(
             settings_frame, 
@@ -281,7 +327,7 @@ class MainWindow:
         
         # Statistics frame
         self.stats_frame = ctk.CTkFrame(sidebar_frame)
-        self.stats_frame.grid(row=5, column=0, padx=20, pady=10, sticky="nsew")
+        self.stats_frame.grid(row=6, column=0, padx=20, pady=10, sticky="nsew")
         
         stats_label = ctk.CTkLabel(
             self.stats_frame, 
@@ -297,13 +343,30 @@ class MainWindow:
         )
         self.stats_text.grid(row=1, column=0, padx=10, pady=5, sticky="nsew")
         
-        # Status indicator at the bottom of sidebar
-        self.status_label = ctk.CTkLabel(
-            sidebar_frame, 
-            text="Status: Disconnected", 
-            text_color="gray"
+    def create_status_bar(self):
+        """Create a status bar at the bottom of the window"""
+        # Status bar frame
+        self.status_bar = ctk.CTkFrame(
+            self.root, 
+            height=30, 
+            corner_radius=0
         )
-        self.status_label.grid(row=6, column=0, padx=20, pady=20, sticky="s")
+        self.status_bar.grid(
+            row=1, column=0, columnspan=2, sticky="ew"
+        )
+        
+        # Configure grid layout for status bar
+        self.status_bar.grid_columnconfigure(0, weight=1)
+        
+        # Status message
+        self.status_label = ctk.CTkLabel(
+            self.status_bar, 
+            text="Status: Disconnected", 
+            text_color="gray",
+            anchor="w",
+            padx=10
+        )
+        self.status_label.grid(row=0, column=0, sticky="w", padx=10, pady=5)
         
     def create_main_content(self):
         """Create the main content area with video displays"""
@@ -315,6 +378,7 @@ class MainWindow:
         main_frame.grid_columnconfigure(1, weight=1)
         main_frame.grid_rowconfigure(0, weight=1)
         main_frame.grid_rowconfigure(1, weight=3)
+        main_frame.grid_rowconfigure(2, weight=1)
         
         # Header with connection info
         header_frame = ctk.CTkFrame(main_frame)
@@ -357,6 +421,68 @@ class MainWindow:
         self.remote_video = ctk.CTkLabel(remote_frame, text="Not Connected")
         self.remote_video.pack(expand=True, fill="both", padx=10, pady=10)
         
+        # Audio controls frame
+        audio_controls_frame = ctk.CTkFrame(main_frame)
+        audio_controls_frame.grid(
+            row=2, column=0, columnspan=2, sticky="ew", padx=10, pady=10
+        )
+        
+        # Configure grid layout for audio controls
+        audio_controls_frame.grid_columnconfigure(0, weight=1)
+        audio_controls_frame.grid_columnconfigure(1, weight=1)
+        
+        # Local audio controls
+        local_audio_frame = ctk.CTkFrame(audio_controls_frame)
+        local_audio_frame.grid(
+            row=0, column=0, sticky="ew", padx=10, pady=10
+        )
+        
+        local_audio_label = ctk.CTkLabel(
+            local_audio_frame, 
+            text="Local Audio Controls", 
+            font=ctk.CTkFont(weight="bold")
+        )
+        local_audio_label.grid(row=0, column=0, padx=10, pady=5, sticky="w")
+        
+        self.local_mute_var = ctk.StringVar(value="off")
+        self.local_mute_checkbox = ctk.CTkCheckBox(
+            local_audio_frame, 
+            text="Mute Microphone", 
+            command=self.toggle_local_mute,
+            variable=self.local_mute_var, 
+            onvalue="on", 
+            offvalue="off"
+        )
+        self.local_mute_checkbox.grid(
+            row=1, column=0, padx=10, pady=5, sticky="w"
+        )
+        
+        # Remote audio controls
+        remote_audio_frame = ctk.CTkFrame(audio_controls_frame)
+        remote_audio_frame.grid(
+            row=0, column=1, sticky="ew", padx=10, pady=10
+        )
+        
+        remote_audio_label = ctk.CTkLabel(
+            remote_audio_frame, 
+            text="Remote Audio Controls", 
+            font=ctk.CTkFont(weight="bold")
+        )
+        remote_audio_label.grid(row=0, column=0, padx=10, pady=5, sticky="w")
+        
+        self.remote_mute_var = ctk.StringVar(value="off")
+        self.remote_mute_checkbox = ctk.CTkCheckBox(
+            remote_audio_frame, 
+            text="Mute Speaker", 
+            command=self.toggle_remote_mute,
+            variable=self.remote_mute_var, 
+            onvalue="on", 
+            offvalue="off"
+        )
+        self.remote_mute_checkbox.grid(
+            row=1, column=0, padx=10, pady=5, sticky="w"
+        )
+
     def connect(self):
         """Connect to a remote host"""
         host = self.host_entry.get()
@@ -520,7 +646,34 @@ class MainWindow:
                 self.update_status("Failed to start with new device", "red")
                 self.mic_switch.deselect()
                 self.audio_enabled = False
-                
+
+    def change_input_video_device(self, device_str):
+        """Change the input video device"""
+        if not device_str or ":" not in device_str:
+            return
+            
+        # Extract device ID from the string
+        device_id = int(device_str.split(":")[0])
+        
+        # Stop the current capture if it's running
+        was_running = self.video_enabled
+        if was_running:
+            self.local_video_capture.stop()
+            
+        # Create a new video capture with the selected device
+        self.local_video_capture = VideoCapture(
+            callback=self.on_local_video_frame,
+            device_id=device_id
+        )
+        
+        # Restart if it was running
+        if was_running:
+            success = self.local_video_capture.start()
+            if not success:
+                self.update_status("Failed to start with new device", "red")
+                self.camera_switch.deselect()
+                self.video_enabled = False
+
     def change_output_device(self, device_str):
         """Change the output audio device"""
         if not device_str or ":" not in device_str:
@@ -539,7 +692,7 @@ class MainWindow:
         ctk.set_appearance_mode(new_appearance_mode)
         
     def update_status(self, message, color="gray"):
-        """Update the status message"""
+        """Update the status message in the status bar"""
         self.status_label.configure(
             text=f"Status: {message}", 
             text_color=color
@@ -685,6 +838,11 @@ class MainWindow:
         # Enable disconnect button
         self.disconnect_button.configure(state="normal")
         
+        # Reset mute states
+        self.local_mute_var.set("off")
+        self.remote_mute_var.set("off")
+        self.remote_audio_enabled = True
+        
     def on_disconnected(self):
         """Callback when a connection is closed"""
         self.is_connected = False
@@ -771,3 +929,28 @@ class MainWindow:
             
         if hasattr(self, 'connection') and self.is_connected:
             self.connection.disconnect() 
+            
+    def toggle_local_mute(self):
+        """Toggle the local microphone mute state"""
+        if self.local_mute_var.get() == "on":
+            # Mute local audio (keep capturing but don't send)
+            self.update_status("Local microphone muted", "orange")
+            # We don't stop the audio capture, just prevent sending
+            if self.is_connected:
+                self.connection.set_audio_state(False)
+        else:
+            # Unmute local audio
+            self.update_status("Local microphone unmuted", "green")
+            if self.audio_enabled and self.is_connected:
+                self.connection.set_audio_state(True)
+    
+    def toggle_remote_mute(self):
+        """Toggle the remote audio (speaker) mute state"""
+        if self.remote_mute_var.get() == "on":
+            # Mute remote audio (don't play received audio)
+            self.remote_audio_enabled = False
+            self.update_status("Remote audio muted", "orange")
+        else:
+            # Unmute remote audio
+            self.remote_audio_enabled = True
+            self.update_status("Remote audio unmuted", "green")
