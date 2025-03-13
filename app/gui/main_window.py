@@ -468,8 +468,37 @@ class MainWindow:
             text="Remote Audio Controls", 
             font=ctk.CTkFont(weight="bold")
         )
-        remote_audio_label.grid(row=0, column=0, padx=10, pady=5, sticky="w")
+        remote_audio_label.grid(row=0, column=0, columnspan=2, padx=10, pady=5, sticky="w")
         
+        # Speaker icon (using Unicode character for speaker)
+        speaker_icon = ctk.CTkLabel(
+            remote_audio_frame,
+            text="🔊",  # Unicode speaker icon
+            font=ctk.CTkFont(size=20),
+            width=30
+        )
+        speaker_icon.grid(row=1, column=0, padx=(10, 0), pady=5, sticky="w")
+        
+        # Volume slider
+        self.volume_var = ctk.DoubleVar(value=1.0)  # Default volume: 100%
+        self.volume_slider = ctk.CTkSlider(
+            remote_audio_frame,
+            from_=0,
+            to=1.0,
+            number_of_steps=20,
+            variable=self.volume_var,
+            command=self.change_volume
+        )
+        self.volume_slider.grid(row=1, column=1, padx=10, pady=5, sticky="ew")
+        
+        # Volume percentage label
+        self.volume_label = ctk.CTkLabel(
+            remote_audio_frame,
+            text="100%"
+        )
+        self.volume_label.grid(row=1, column=2, padx=10, pady=5, sticky="e")
+        
+        # Mute checkbox
         self.remote_mute_var = ctk.StringVar(value="off")
         self.remote_mute_checkbox = ctk.CTkCheckBox(
             remote_audio_frame, 
@@ -480,7 +509,7 @@ class MainWindow:
             offvalue="off"
         )
         self.remote_mute_checkbox.grid(
-            row=1, column=0, padx=10, pady=5, sticky="w"
+            row=2, column=0, columnspan=3, padx=10, pady=5, sticky="w"
         )
 
     def connect(self):
@@ -843,6 +872,11 @@ class MainWindow:
         self.remote_mute_var.set("off")
         self.remote_audio_enabled = True
         
+        # Reset volume
+        self.volume_var.set(1.0)
+        self.volume_label.configure(text="100%")
+        self.volume_slider.configure(state="normal")
+        
     def on_disconnected(self):
         """Callback when a connection is closed"""
         self.is_connected = False
@@ -950,7 +984,26 @@ class MainWindow:
             # Mute remote audio (don't play received audio)
             self.remote_audio_enabled = False
             self.update_status("Remote audio muted", "orange")
+            # Disable volume slider
+            self.volume_slider.configure(state="disabled")
         else:
             # Unmute remote audio
             self.remote_audio_enabled = True
             self.update_status("Remote audio unmuted", "green")
+            # Enable volume slider
+            self.volume_slider.configure(state="normal")
+
+    def change_volume(self, value=None):
+        """Change the volume of remote audio playback"""
+        if value is None:
+            value = self.volume_var.get()
+            
+        # Update volume label
+        volume_percentage = int(value * 100)
+        self.volume_label.configure(text=f"{volume_percentage}%")
+        
+        # Set volume in audio playback
+        self.audio_playback.set_volume(value)
+        
+        # Update status
+        self.update_status(f"Volume set to {volume_percentage}%", "blue")

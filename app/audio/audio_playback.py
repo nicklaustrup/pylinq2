@@ -26,6 +26,7 @@ class AudioPlayback:
         self.sample_rate = sample_rate
         self.channels = channels
         self.device_id = device_id
+        self.volume = 1.0  # Default to full volume
         
         self.is_running = False
         self.stream = None
@@ -120,6 +121,10 @@ class AudioPlayback:
             elif audio_data.shape[0] > frames:
                 # Too much data, truncate
                 audio_data = audio_data[:frames]
+                
+            # Apply volume control if defined
+            if hasattr(self, 'volume'):
+                audio_data = audio_data * self.volume
                 
             # Copy the data to the output buffer
             outdata[:] = audio_data
@@ -219,4 +224,22 @@ class AudioPlayback:
         Returns:
             bool: True if active, False otherwise
         """
-        return self.is_running and self.stream is not None 
+        return self.is_running and self.stream is not None
+        
+    def set_volume(self, volume):
+        """
+        Set the volume level for audio playback.
+        
+        Args:
+            volume: Volume level from 0.0 (mute) to 1.0 (full volume)
+            
+        Returns:
+            bool: True if successful
+        """
+        # Ensure volume is within valid range
+        volume = max(0.0, min(1.0, volume))
+        
+        # Store the volume level for use in audio processing
+        self.volume = volume
+        
+        return True 
